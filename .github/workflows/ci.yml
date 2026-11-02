@@ -1,0 +1,34 @@
+name: AgriSignal CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test-and-verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Run pytest suite
+        run: uv run --python ${{ matrix.python-version }} --with pytest --with fastapi --with httpx --with pydantic --with uvicorn pytest -v
+
+      - name: Verify CLI commands
+        run: |
+          uv run --python ${{ matrix.python-version }} agrisignal advise --crop maize --zone lake_victoria_crescent --rain-14d 85 --soil-ph 6.2 --lang en
+          uv run --python ${{ matrix.python-version }} agrisignal advise --crop robusta_coffee --zone western_highlands --rain-14d 95 --soil-ph 5.8 --lang lg
+          uv run --python ${{ matrix.python-version }} agrisignal advise --crop beans --zone eastern_plains --rain-14d 70 --soil-ph 6.0 --lang sw
+          uv run --python ${{ matrix.python-version }} agrisignal simulate-sync
