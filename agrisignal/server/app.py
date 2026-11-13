@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import re
+import sys
 import threading
 import time
 import uuid
 from collections import Counter
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, MutableMapping
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, Request, Response
@@ -34,15 +38,75 @@ from agrisignal.sync.engine import (
 )
 
 logger = logging.getLogger("agrisignal.server")
+_SERVICE_NAME = "agrisignal"
 
-_MAX_REQUEST_BODY_BYTES = 1_048_576  # 1 MiB
-_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_DEFAULT_MAX_BODY_BYTES = 1_048_576  # 1 MiB
+_MAX_REQUEST_BODY_BYTES = _DEFAULT_MAX_BODY_BYTES
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 _SECURITY_HEADERS: dict[str, str] = {
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Cache-Control": "no-store",
 }
+
+
+class _JsonLogFormatter(logging.Formatter):
+    """Emit structured JSON log lines for container stdout aggregation."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "service": _SERVICE_NAME,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        for attr in ("request_id", "method", "path", "status_code", "latency_ms", "event"):
+            value = getattr(record, attr, None)
+            if value is not None:
+                payload[attr] = value
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=True)
+
+
+def _configure_json_logging() -> None:
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(_JsonLogFormatter())
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+
+
+def _resolve_max_body_bytes(explicit: int | None = None) -> int:
+    if explicit is not None and explicit > 0:
+        return explicit
+    raw = os.getenv("AGRISIGNAL_MAX_BODY_BYTES", "").strip()
+    if raw:
+        try:
+            parsed = int(raw)
+        except ValueError:
+            parsed = 0
+        if parsed > 0:
+            return parsed
+    return _DEFAULT_MAX_BODY_BYTES
+
+
+def _should_disable_cache(path: str) -> bool:
+    return (
+        path.startswith("/api/")
+        or path == "/api"
+        or path.startswith("/health")
+        or path in {"/readyz", "/metrics"}
+    )
+
+
+def _security_headers_for_path(path: str) -> dict[str, str]:
+    headers = dict(_SECURITY_HEADERS)
+    if _should_disable_cache(path):
+        headers["Cache-Control"] = "no-store"
+    return headers
 
 
 class _RuntimeMetrics:
@@ -52,24 +116,32 @@ class _RuntimeMetrics:
         self._lock = threading.Lock()
         self.started_at = time.monotonic()
         self.requests_total = 0
-        self.errors_total = 0
+        self.client_errors_4xx = 0
+        self.server_errors_5xx = 0
         self.latency_ms_sum = 0.0
         self.status_code_counts: Counter[int] = Counter()
 
     def record(self, status_code: int, latency_ms: float) -> None:
         with self._lock:
             self.requests_total += 1
-            if status_code >= 500:
-                self.errors_total += 1
+            if 400 <= status_code < 500:
+                self.client_errors_4xx += 1
+            elif status_code >= 500:
+                self.server_errors_5xx += 1
             self.latency_ms_sum += latency_ms
             self.status_code_counts[status_code] += 1
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
+                "service": _SERVICE_NAME,
                 "uptime_seconds": round(time.monotonic() - self.started_at, 3),
+                "total_requests": self.requests_total,
                 "requests_total": self.requests_total,
-                "errors_total": self.errors_total,
+                "client_errors_4xx": self.client_errors_4xx,
+                "server_errors_5xx": self.server_errors_5xx,
+                "total_errors": self.client_errors_4xx + self.server_errors_5xx,
+                "errors_total": self.server_errors_5xx,
                 "latency_ms_sum": round(self.latency_ms_sum, 3),
                 "status_code_counts": dict(sorted(self.status_code_counts.items())),
                 "supported_crops": len(CROP_PROFILES),
@@ -79,8 +151,10 @@ class _RuntimeMetrics:
 
 
 def _sanitize_request_id(raw: str | None) -> str:
-    if raw and _REQUEST_ID_PATTERN.match(raw.strip()):
-        return raw.strip()
+    if raw:
+        candidate = raw.strip()
+        if _REQUEST_ID_PATTERN.fullmatch(candidate):
+            return candidate
     return uuid.uuid4().hex[:16]
 
 
@@ -101,6 +175,12 @@ def _format_prometheus_metrics(snapshot: dict[str, Any]) -> str:
         "# HELP agrisignal_supported_crops Number of agronomic crop profiles configured.",
         "# TYPE agrisignal_supported_crops gauge",
         f"agrisignal_supported_crops {snapshot['supported_crops']}",
+        "# HELP agrisignal_supported_zones Number of agro-ecological zones configured.",
+        "# TYPE agrisignal_supported_zones gauge",
+        f"agrisignal_supported_zones {snapshot['supported_zones']}",
+        "# HELP agrisignal_supported_languages Number of advisory languages supported.",
+        "# TYPE agrisignal_supported_languages gauge",
+        f"agrisignal_supported_languages {snapshot['supported_languages']}",
     ]
     for code, count in snapshot["status_code_counts"].items():
         lines.append(f'agrisignal_http_responses_total{{status="{code}"}} {count}')
@@ -110,44 +190,53 @@ def _format_prometheus_metrics(snapshot: dict[str, Any]) -> str:
 class _HardeningMiddleware:
     """ASGI middleware enforcing request-ID correlation, body caps, timing & security headers."""
 
-    def __init__(self, app: Any, metrics: _RuntimeMetrics, max_body_bytes: int = _MAX_REQUEST_BODY_BYTES) -> None:
+    def __init__(
+        self,
+        app: Any,
+        metrics: _RuntimeMetrics,
+        max_body_bytes: int = _DEFAULT_MAX_BODY_BYTES,
+    ) -> None:
         self.app = app
         self.metrics = metrics
         self.max_body_bytes = max_body_bytes
 
     async def __call__(
         self,
-        scope: dict[str, Any],
-        receive: Callable[[], Awaitable[dict[str, Any]]],
-        send: Callable[[dict[str, Any]], Awaitable[None]],
+        scope: MutableMapping[str, Any],
+        receive: Callable[[], Awaitable[MutableMapping[str, Any]]],
+        send: Callable[[MutableMapping[str, Any]], Awaitable[None]],
     ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        req_headers = {k.lower(): v for k, v in scope.get("headers", [])}
+        req_headers = {bytes(k).lower(): bytes(v) for k, v in scope.get("headers", [])}
         raw_req_id = req_headers.get(b"x-request-id")
         request_id = _sanitize_request_id(raw_req_id.decode("latin-1") if raw_req_id else None)
         scope.setdefault("state", {})["request_id"] = request_id
+        path = str(scope.get("path", "/"))
+        method = str(scope.get("method", "GET")).upper()
         started = time.perf_counter()
         status_code = 500
+        sec_headers = _security_headers_for_path(path)
 
-        async def _send_with_headers(message: dict[str, Any]) -> None:
+        async def _send_with_headers(message: MutableMapping[str, Any]) -> None:
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = int(message["status"])
                 elapsed_ms = (time.perf_counter() - started) * 1000.0
                 headers = list(message.get("headers", []))
-                existing = {k.lower() for k, _ in headers}
-                for key, val in _SECURITY_HEADERS.items():
+                existing = {bytes(k).lower() for k, _ in headers}
+                for key, val in sec_headers.items():
                     if key.lower().encode("latin-1") not in existing:
                         headers.append((key.encode("latin-1"), val.encode("latin-1")))
-                headers.append((b"x-request-id", request_id.encode("latin-1")))
-                headers.append((b"x-response-time-ms", f"{elapsed_ms:.2f}".encode("latin-1")))
+                if b"x-request-id" not in existing:
+                    headers.append((b"x-request-id", request_id.encode("latin-1")))
+                if b"x-response-time-ms" not in existing:
+                    headers.append((b"x-response-time-ms", f"{elapsed_ms:.2f}".encode("latin-1")))
                 message = {**message, "headers": headers}
             await send(message)
 
-        method = str(scope.get("method", "GET")).upper()
         if method in {"POST", "PUT", "PATCH"} and b"content-length" in req_headers:
             try:
                 content_length = int(req_headers[b"content-length"].decode("latin-1"))
@@ -156,16 +245,20 @@ class _HardeningMiddleware:
             if content_length < 0 or content_length > self.max_body_bytes:
                 resp = JSONResponse(
                     status_code=413,
-                    content={"error": "Payload too large", "max_bytes": self.max_body_bytes, "request_id": request_id},
+                    content={
+                        "error": "Payload too large",
+                        "max_bytes": self.max_body_bytes,
+                        "request_id": request_id,
+                    },
                 )
                 await resp(scope, receive, _send_with_headers)
                 self.metrics.record(413, (time.perf_counter() - started) * 1000.0)
                 return
 
-        buffered_chunks: list[dict[str, Any]] | None = None
+        buffered_chunks: list[MutableMapping[str, Any]] | None = None
         if method in {"POST", "PUT", "PATCH"}:
             total_bytes = 0
-            chunks: list[dict[str, Any]] = []
+            chunks: list[MutableMapping[str, Any]] = []
             more_body = True
             while more_body:
                 event = await receive()
@@ -195,7 +288,7 @@ class _HardeningMiddleware:
 
         chunk_iter = iter(buffered_chunks) if buffered_chunks is not None else None
 
-        async def _bounded_receive() -> dict[str, Any]:
+        async def _bounded_receive() -> MutableMapping[str, Any]:
             if chunk_iter is None:
                 return await receive()
             try:
@@ -210,10 +303,23 @@ class _HardeningMiddleware:
             resp = JSONResponse(
                 status_code=500,
                 content={"error": "Internal server error", "request_id": request_id},
+                headers={**sec_headers, "X-Request-ID": request_id},
             )
             await resp(scope, receive, _send_with_headers)
         finally:
-            self.metrics.record(status_code, (time.perf_counter() - started) * 1000.0)
+            elapsed_ms = (time.perf_counter() - started) * 1000.0
+            self.metrics.record(status_code, elapsed_ms)
+            logger.info(
+                "http_request",
+                extra={
+                    "event": "http_request",
+                    "request_id": request_id,
+                    "method": method,
+                    "path": path,
+                    "status_code": status_code,
+                    "latency_ms": round(elapsed_ms, 2),
+                },
+            )
 
 
 class BatchSyncRequest(BaseModel):
@@ -456,15 +562,20 @@ WORKBENCH_HTML = """<!DOCTYPE html>
 """
 
 
-def create_app() -> FastAPI:
+def create_app(*, max_body_bytes: int | None = None) -> FastAPI:
+    """Create and configure the AgriSignal FastAPI application."""
+    _configure_json_logging()
+    resolved_max_body = _resolve_max_body_bytes(max_body_bytes)
     metrics = _RuntimeMetrics()
     advisory_engine = AdvisoryEngine()
     pest_engine = PestRiskEngine()
 
     @asynccontextmanager
     async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        _app.state.ready = True
         logger.info("AgriSignal Workbench server started version=%s", __version__)
         yield
+        _app.state.ready = False
         logger.info("AgriSignal Workbench server stopping")
 
     application = FastAPI(
@@ -473,7 +584,8 @@ def create_app() -> FastAPI:
         version=__version__,
         lifespan=_lifespan,
     )
-    application.add_middleware(_HardeningMiddleware, metrics=metrics)
+    application.state.ready = True
+    application.add_middleware(_HardeningMiddleware, metrics=metrics, max_body_bytes=resolved_max_body)
 
     @application.exception_handler(Exception)
     async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -484,28 +596,37 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=500,
             content={"error": "Internal server error", "request_id": request_id},
+            headers={**_security_headers_for_path(request.url.path), "X-Request-ID": request_id},
         )
 
     @application.get("/", response_class=HTMLResponse)
     def workbench_index() -> HTMLResponse:
         return HTMLResponse(content=WORKBENCH_HTML, status_code=200)
 
-    def _health_payload() -> dict[str, Any]:
+    def _health_payload(*, ready: bool = True) -> dict[str, Any]:
         return {
-            "status": "ok",
+            "status": "ok" if ready else "starting",
             "service": "agrisignal",
             "version": __version__,
+            "ready": ready,
             "offline_sync_protocol": "HLC-LWW-Element-Set-v1",
         }
 
     @application.api_route("/health", methods=["GET", "HEAD"])
     @application.api_route("/healthz", methods=["GET", "HEAD"])
-    @application.api_route("/readyz", methods=["GET", "HEAD"])
     @application.api_route("/api/health", methods=["GET", "HEAD"])
     def health_check(request: Request) -> Response:
         if request.method == "HEAD":
             return Response(status_code=200)
         return JSONResponse(content=_health_payload(), status_code=200)
+
+    @application.api_route("/readyz", methods=["GET", "HEAD"])
+    def readiness_check(request: Request) -> Response:
+        is_ready = bool(getattr(application.state, "ready", True))
+        status = 200 if is_ready else 503
+        if request.method == "HEAD":
+            return Response(status_code=status)
+        return JSONResponse(content=_health_payload(ready=is_ready), status_code=status)
 
     @application.get("/metrics")
     def runtime_metrics(request: Request, format: str | None = None) -> Response:

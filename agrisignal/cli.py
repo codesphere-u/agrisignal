@@ -175,7 +175,7 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "pest-risk":
         pest_engine = PestRiskEngine()
-        report = pest_engine.evaluate(
+        pest_report = pest_engine.evaluate(
             PestRiskInput(
                 crop=CropType(args.crop),
                 zone=AgroEcologicalZone(args.zone),
@@ -186,12 +186,18 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             )
         )
         if args.json:
-            print(json.dumps(report.model_dump(), indent=2))
+            print(json.dumps(pest_report.model_dump(), indent=2))
         else:
-            print(f"OVERALL PEST RISK [{report.crop} @ {report.zone}]: {report.overall_risk_level}")
-            for t in report.threats:
-                print(f"  - {t.common_name} ({t.scientific_name}): {t.risk_level} (score={t.risk_score})")
-                print(f"    Escalation: {t.extension_escalation_threshold}")
+            print(
+                f"OVERALL PEST RISK [{pest_report.crop} @ {pest_report.zone}]: "
+                f"{pest_report.overall_risk_level}"
+            )
+            for threat in pest_report.threats:
+                print(
+                    f"  - {threat.common_name} ({threat.scientific_name}): "
+                    f"{threat.risk_level} (score={threat.risk_score})"
+                )
+                print(f"    Escalation: {threat.extension_escalation_threshold}")
         return 0
 
     if args.command == "serve":

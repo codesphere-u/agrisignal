@@ -23,14 +23,17 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      - name: Install project and dev dependencies
+        run: uv sync --python ${{ matrix.python-version }} --extra dev
+
       - name: Lint with ruff
-        run: uvx ruff check .
+        run: uv run --python ${{ matrix.python-version }} ruff check .
 
       - name: Static type check with mypy
-        run: uv run --python ${{ matrix.python-version }} --with mypy mypy agrisignal
+        run: uv run --python ${{ matrix.python-version }} mypy agrisignal
 
       - name: Run pytest suite with coverage gate
-        run: uv run --python ${{ matrix.python-version }} --with pytest --with pytest-cov --with fastapi --with httpx --with pydantic --with uvicorn pytest -v --cov=agrisignal --cov-report=term-missing --cov-fail-under=85
+        run: uv run --python ${{ matrix.python-version }} pytest -v --cov=agrisignal --cov-report=term-missing --cov-fail-under=85
 
       - name: Verify CLI commands
         run: |
