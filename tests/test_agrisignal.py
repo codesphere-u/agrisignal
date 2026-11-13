@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -28,7 +29,6 @@ from agrisignal.sync.engine import (
     OfflineOutbox,
     simulate_rural_sync_scenario,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Explainable Crop & Planting Advisory Engine Tests

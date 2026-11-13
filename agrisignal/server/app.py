@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import logging
+import re
+import threading
+import time
+import uuid
+from collections import Counter
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 
 from agrisignal import __version__
@@ -24,6 +32,188 @@ from agrisignal.sync.engine import (
     SyncReconciliationReport,
     simulate_rural_sync_scenario,
 )
+
+logger = logging.getLogger("agrisignal.server")
+
+_MAX_REQUEST_BODY_BYTES = 1_048_576  # 1 MiB
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Cache-Control": "no-store",
+}
+
+
+class _RuntimeMetrics:
+    """Thread-safe in-memory HTTP metrics for /metrics monitoring."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.started_at = time.monotonic()
+        self.requests_total = 0
+        self.errors_total = 0
+        self.latency_ms_sum = 0.0
+        self.status_code_counts: Counter[int] = Counter()
+
+    def record(self, status_code: int, latency_ms: float) -> None:
+        with self._lock:
+            self.requests_total += 1
+            if status_code >= 500:
+                self.errors_total += 1
+            self.latency_ms_sum += latency_ms
+            self.status_code_counts[status_code] += 1
+
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "uptime_seconds": round(time.monotonic() - self.started_at, 3),
+                "requests_total": self.requests_total,
+                "errors_total": self.errors_total,
+                "latency_ms_sum": round(self.latency_ms_sum, 3),
+                "status_code_counts": dict(sorted(self.status_code_counts.items())),
+                "supported_crops": len(CROP_PROFILES),
+                "supported_zones": len(AGRO_ZONES),
+                "supported_languages": len(SUPPORTED_LANGUAGES),
+            }
+
+
+def _sanitize_request_id(raw: str | None) -> str:
+    if raw and _REQUEST_ID_PATTERN.match(raw.strip()):
+        return raw.strip()
+    return uuid.uuid4().hex[:16]
+
+
+def _format_prometheus_metrics(snapshot: dict[str, Any]) -> str:
+    lines = [
+        "# HELP agrisignal_uptime_seconds Server uptime in seconds.",
+        "# TYPE agrisignal_uptime_seconds gauge",
+        f"agrisignal_uptime_seconds {snapshot['uptime_seconds']}",
+        "# HELP agrisignal_http_requests_total Total HTTP requests handled.",
+        "# TYPE agrisignal_http_requests_total counter",
+        f"agrisignal_http_requests_total {snapshot['requests_total']}",
+        "# HELP agrisignal_http_errors_total Total HTTP 5xx responses.",
+        "# TYPE agrisignal_http_errors_total counter",
+        f"agrisignal_http_errors_total {snapshot['errors_total']}",
+        "# HELP agrisignal_http_request_duration_ms_sum Cumulative HTTP response latency in ms.",
+        "# TYPE agrisignal_http_request_duration_ms_sum counter",
+        f"agrisignal_http_request_duration_ms_sum {snapshot['latency_ms_sum']}",
+        "# HELP agrisignal_supported_crops Number of agronomic crop profiles configured.",
+        "# TYPE agrisignal_supported_crops gauge",
+        f"agrisignal_supported_crops {snapshot['supported_crops']}",
+    ]
+    for code, count in snapshot["status_code_counts"].items():
+        lines.append(f'agrisignal_http_responses_total{{status="{code}"}} {count}')
+    return "\n".join(lines) + "\n"
+
+
+class _HardeningMiddleware:
+    """ASGI middleware enforcing request-ID correlation, body caps, timing & security headers."""
+
+    def __init__(self, app: Any, metrics: _RuntimeMetrics, max_body_bytes: int = _MAX_REQUEST_BODY_BYTES) -> None:
+        self.app = app
+        self.metrics = metrics
+        self.max_body_bytes = max_body_bytes
+
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        req_headers = {k.lower(): v for k, v in scope.get("headers", [])}
+        raw_req_id = req_headers.get(b"x-request-id")
+        request_id = _sanitize_request_id(raw_req_id.decode("latin-1") if raw_req_id else None)
+        scope.setdefault("state", {})["request_id"] = request_id
+        started = time.perf_counter()
+        status_code = 500
+
+        async def _send_with_headers(message: dict[str, Any]) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = int(message["status"])
+                elapsed_ms = (time.perf_counter() - started) * 1000.0
+                headers = list(message.get("headers", []))
+                existing = {k.lower() for k, _ in headers}
+                for key, val in _SECURITY_HEADERS.items():
+                    if key.lower().encode("latin-1") not in existing:
+                        headers.append((key.encode("latin-1"), val.encode("latin-1")))
+                headers.append((b"x-request-id", request_id.encode("latin-1")))
+                headers.append((b"x-response-time-ms", f"{elapsed_ms:.2f}".encode("latin-1")))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        method = str(scope.get("method", "GET")).upper()
+        if method in {"POST", "PUT", "PATCH"} and b"content-length" in req_headers:
+            try:
+                content_length = int(req_headers[b"content-length"].decode("latin-1"))
+            except ValueError:
+                content_length = -1
+            if content_length < 0 or content_length > self.max_body_bytes:
+                resp = JSONResponse(
+                    status_code=413,
+                    content={"error": "Payload too large", "max_bytes": self.max_body_bytes, "request_id": request_id},
+                )
+                await resp(scope, receive, _send_with_headers)
+                self.metrics.record(413, (time.perf_counter() - started) * 1000.0)
+                return
+
+        buffered_chunks: list[dict[str, Any]] | None = None
+        if method in {"POST", "PUT", "PATCH"}:
+            total_bytes = 0
+            chunks: list[dict[str, Any]] = []
+            more_body = True
+            while more_body:
+                event = await receive()
+                if event["type"] == "http.disconnect":
+                    chunks.append(event)
+                    break
+                if event["type"] == "http.request":
+                    body_part = event.get("body", b"")
+                    total_bytes += len(body_part)
+                    if total_bytes > self.max_body_bytes:
+                        resp = JSONResponse(
+                            status_code=413,
+                            content={
+                                "error": "Payload too large",
+                                "max_bytes": self.max_body_bytes,
+                                "request_id": request_id,
+                            },
+                        )
+                        await resp(scope, receive, _send_with_headers)
+                        self.metrics.record(413, (time.perf_counter() - started) * 1000.0)
+                        return
+                    chunks.append(event)
+                    more_body = bool(event.get("more_body", False))
+                else:
+                    chunks.append(event)
+            buffered_chunks = chunks
+
+        chunk_iter = iter(buffered_chunks) if buffered_chunks is not None else None
+
+        async def _bounded_receive() -> dict[str, Any]:
+            if chunk_iter is None:
+                return await receive()
+            try:
+                return next(chunk_iter)
+            except StopIteration:
+                return {"type": "http.disconnect"}
+
+        try:
+            await self.app(scope, _bounded_receive, _send_with_headers)
+        except Exception:
+            logger.exception("Unhandled exception in AgriSignal ASGI pipeline request_id=%s", request_id)
+            resp = JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error", "request_id": request_id},
+            )
+            await resp(scope, receive, _send_with_headers)
+        finally:
+            self.metrics.record(status_code, (time.perf_counter() - started) * 1000.0)
 
 
 class BatchSyncRequest(BaseModel):
@@ -267,26 +457,66 @@ WORKBENCH_HTML = """<!DOCTYPE html>
 
 
 def create_app() -> FastAPI:
+    metrics = _RuntimeMetrics()
+    advisory_engine = AdvisoryEngine()
+    pest_engine = PestRiskEngine()
+
+    @asynccontextmanager
+    async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        logger.info("AgriSignal Workbench server started version=%s", __version__)
+        yield
+        logger.info("AgriSignal Workbench server stopping")
+
     application = FastAPI(
         title="AgriSignal Field & Extension Workbench",
         description="Offline-First Smallholder Agricultural Decision Support Platform",
         version=__version__,
+        lifespan=_lifespan,
     )
-    advisory_engine = AdvisoryEngine()
-    pest_engine = PestRiskEngine()
+    application.add_middleware(_HardeningMiddleware, metrics=metrics)
+
+    @application.exception_handler(Exception)
+    async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", None) or _sanitize_request_id(
+            request.headers.get("x-request-id")
+        )
+        logger.exception("Unhandled AgriSignal exception request_id=%s", request_id, exc_info=exc)
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "request_id": request_id},
+        )
 
     @application.get("/", response_class=HTMLResponse)
     def workbench_index() -> HTMLResponse:
         return HTMLResponse(content=WORKBENCH_HTML, status_code=200)
 
-    @application.get("/api/health")
-    def health_check() -> dict[str, Any]:
+    def _health_payload() -> dict[str, Any]:
         return {
             "status": "ok",
             "service": "agrisignal",
             "version": __version__,
             "offline_sync_protocol": "HLC-LWW-Element-Set-v1",
         }
+
+    @application.api_route("/health", methods=["GET", "HEAD"])
+    @application.api_route("/healthz", methods=["GET", "HEAD"])
+    @application.api_route("/readyz", methods=["GET", "HEAD"])
+    @application.api_route("/api/health", methods=["GET", "HEAD"])
+    def health_check(request: Request) -> Response:
+        if request.method == "HEAD":
+            return Response(status_code=200)
+        return JSONResponse(content=_health_payload(), status_code=200)
+
+    @application.get("/metrics")
+    def runtime_metrics(request: Request, format: str | None = None) -> Response:
+        snap = metrics.snapshot()
+        accept = request.headers.get("accept", "")
+        if format == "json" or "application/json" in accept:
+            return JSONResponse(content=snap)
+        return PlainTextResponse(
+            content=_format_prometheus_metrics(snap),
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
 
     @application.get("/api/metadata")
     def metadata() -> dict[str, Any]:

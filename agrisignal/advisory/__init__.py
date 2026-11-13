@@ -27,9 +27,9 @@ __all__ = [
     "AgroEcologicalZone",
     "CropType",
     "GrowthStage",
-    "UncertaintyBounds",
     "PestRiskEngine",
     "PestRiskInput",
     "PestRiskReport",
     "PestThreatAssessment",
+    "UncertaintyBounds",
 ]

@@ -148,7 +148,7 @@ def translate_advisory_summary(
     crop_label = CROP_NAMES_I18N.get(crop_key, {}).get(lang_key, crop_key)
     stage_label = STAGE_NAMES_I18N.get(stage_key, {}).get(lang_key, stage_key)
     action_text = ACTION_I18N.get(action_code, ACTION_I18N["PROCEED_STANDARD"]).get(lang_key, "")
-    conf_pct = int(round(point_confidence * 100))
+    conf_pct = round(point_confidence * 100)
 
     if lang_key == "lg":
         return (
@@ -185,8 +185,8 @@ def format_sms_advisory(
     short_action = SMS_SHORT_ACTION.get(action_code, SMS_SHORT_ACTION["PROCEED_STANDARD"]).get(
         lang_key, "Check field."
     )
-    ci_lo = int(round(confidence_interval[0] * 100))
-    ci_hi = int(round(confidence_interval[1] * 100))
+    ci_lo = round(confidence_interval[0] * 100)
+    ci_hi = round(confidence_interval[1] * 100)
 
     sms = (
         f"AGRISIGNAL {crop_label}({stage_label}): {status}. "

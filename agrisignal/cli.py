@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 import uvicorn
 
@@ -174,8 +174,8 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "pest-risk":
-        engine = PestRiskEngine()
-        report = engine.evaluate(
+        pest_engine = PestRiskEngine()
+        report = pest_engine.evaluate(
             PestRiskInput(
                 crop=CropType(args.crop),
                 zone=AgroEcologicalZone(args.zone),

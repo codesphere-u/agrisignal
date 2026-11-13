@@ -23,8 +23,14 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
-      - name: Run pytest suite
-        run: uv run --python ${{ matrix.python-version }} --with pytest --with fastapi --with httpx --with pydantic --with uvicorn pytest -v
+      - name: Lint with ruff
+        run: uvx ruff check .
+
+      - name: Static type check with mypy
+        run: uv run --python ${{ matrix.python-version }} --with mypy mypy agrisignal
+
+      - name: Run pytest suite with coverage gate
+        run: uv run --python ${{ matrix.python-version }} --with pytest --with pytest-cov --with fastapi --with httpx --with pydantic --with uvicorn pytest -v --cov=agrisignal --cov-report=term-missing --cov-fail-under=85
 
       - name: Verify CLI commands
         run: |
@@ -32,3 +38,4 @@ jobs:
           uv run --python ${{ matrix.python-version }} agrisignal advise --crop robusta_coffee --zone western_highlands --rain-14d 95 --soil-ph 5.8 --lang lg
           uv run --python ${{ matrix.python-version }} agrisignal advise --crop beans --zone eastern_plains --rain-14d 70 --soil-ph 6.0 --lang sw
           uv run --python ${{ matrix.python-version }} agrisignal simulate-sync
+          uv run --python ${{ matrix.python-version }} agrisignal pest-risk --crop maize --zone lake_victoria_crescent --json

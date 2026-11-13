@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field
 
@@ -16,15 +16,15 @@ class HybridLogicalClock(BaseModel):
     lamport_counter: int = Field(default=0, ge=0)
     node_id: str
 
-    def tick(self, current_wall_ms: int) -> "HybridLogicalClock":
+    def tick(self, current_wall_ms: int) -> HybridLogicalClock:
         if current_wall_ms > self.wall_time_ms:
             self.wall_time_ms = current_wall_ms
             self.lamport_counter = 0
         else:
             self.lamport_counter += 1
-        return self.model_copy()
+        return cast(HybridLogicalClock, self.model_copy())
 
-    def receive(self, remote_wall_ms: int, remote_lamport: int, current_wall_ms: int) -> "HybridLogicalClock":
+    def receive(self, remote_wall_ms: int, remote_lamport: int, current_wall_ms: int) -> HybridLogicalClock:
         max_wall = max(self.wall_time_ms, remote_wall_ms, current_wall_ms)
         if max_wall == self.wall_time_ms == remote_wall_ms:
             self.lamport_counter = max(self.lamport_counter, remote_lamport) + 1
@@ -36,7 +36,7 @@ class HybridLogicalClock(BaseModel):
         else:
             self.wall_time_ms = current_wall_ms
             self.lamport_counter = 0
-        return self.model_copy()
+        return cast(HybridLogicalClock, self.model_copy())
 
     def format_hlc(self) -> str:
         return f"{self.wall_time_ms:013d}:{self.lamport_counter:04d}:{self.node_id}"
