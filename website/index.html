@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgriSignal v1.1.0 — Offline-First Agricultural Decision Support</title>
+  <meta name="description" content="Explainable crop advisories, IPM pest-risk matrix, <=160-character EN/LG/SW SMS alerts, and LWW-Element-Set CRDT sync for East African smallholders.">
+  <meta name="theme-color" content="#15803d">
+  <link rel="canonical" href="https://codesphere-u.github.io/agrisignal/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AgriSignal v1.1.0 — Offline-First Agricultural Decision Support">
+  <meta property="og:description" content="Explainable 6-crop advisories across 4 East African agro-ecological zones with LWW-Element-Set CRDT sync and <=160-char EN/LG/SW SMS.">
+  <meta property="og:url" content="https://codesphere-u.github.io/agrisignal/">
+  <meta property="og:image" content="https://codesphere-u.github.io/agrisignal/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AgriSignal v1.1.0 — Offline-First Agronomy & CRDT Sync">
+  <meta name="twitter:description" content="6 crops, 4 East African zones, <=160-char EN/LG/SW SMS, and deterministic 3-tablet CRDT sync.">
+  <meta name="twitter:image" content="https://codesphere-u.github.io/agrisignal/og-image.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,600;6..72,700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script defer data-domain="codesphere-u.github.io" src="https://plausible.io/js/script.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Codesphere Innovations (U) Limited",
+        "url": "https://github.com/codesphere-u"
+      },
+      {
+        "@type": "Person",
+        "name": "Ivan Akandwanaho"
+      },
+      {
+        "@type": "WebSite",
+        "name": "AgriSignal",
+        "url": "https://codesphere-u.github.io/agrisignal/"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "AgriSignal",
+        "softwareVersion": "1.1.0",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does AgriSignal sync field tablets without reliable cellular data?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AgriSignal uses an offline-first outbox with Hybrid Logical Clocks, SHA-256 content hashes, and LWW-Element-Set CRDT reconciliation so disconnected rural tablets converge deterministically."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which languages and SMS limits are supported?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AgriSignal generates advisories in English (en), Luganda (lg), and Swahili (sw) and enforces strict 160-character GSM-7 SMS formatting."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html">
+        <img src="favicon.svg" alt="AgriSignal leaf mark">
+        <span>AgriSignal</span>
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a class="active" href="index.html">Overview</a>
+        <a href="studio.html">Field Studio</a>
+        <a href="proof.html">Sync Proof</a>
+        <a href="rules.html">Agro &amp; IPM Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/agrisignal/releases/tag/v1.1.0">v1.1.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <span class="eyebrow">v1.1.0 · Offline-First Agronomy &amp; CRDT Sync</span>
+        <h1>Explainable <span class="accent-word">field advisories</span> built for rural connectivity.</h1>
+        <p class="lead">AgriSignal pairs agro-climatic planting rules, explicit confidence intervals, non-chemical IPM pest matrices, 160-character EN/LG/SW SMS alerts, and deterministic LWW-Element-Set tablet sync in one zero-bloat Python engine.</p>
+
+        <div class="btn-row">
+          <a class="btn btn-primary" href="studio.html">Open Field Studio</a>
+          <a class="btn btn-amber" href="docs.html">Read Docs</a>
+          <a class="btn" href="https://github.com/codesphere-u/agrisignal">GitHub Repository</a>
+        </div>
+
+        <div class="install-box">
+          <code>agrisignal simulate-sync</code>
+          <button class="copy-btn" type="button" data-copy="agrisignal simulate-sync">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="grid-4">
+          <div class="card card-white">
+            <div class="stat-value">6 Crops</div>
+            <div class="stat-label">Maize, Robusta Coffee, Beans, Cassava, Matooke, Groundnuts</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">4 Zones</div>
+            <div class="stat-label">Lake Victoria, Western Highlands, Northern Savannah, Eastern Plains</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">&le;160 ch</div>
+            <div class="stat-label">English, Luganda &amp; Swahili GSM-7 SMS alerts</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">64 / 64</div>
+            <div class="stat-label">Passing tests with 0 SHA-256 sync failures</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Built for extension officers, not cloud assumptions</h2>
+        <div class="grid-3">
+          <article class="card">
+            <span class="badge">Epistemic Honesty</span>
+            <h3>Bounded Confidence</h3>
+            <p>Every recommendation reports <code>point_confidence</code>, <code>confidence_interval</code>, <code>data_completeness_score</code>, and missing-sensor warnings so officers never mistake sparse readings for certainty.</p>
+          </article>
+          <article class="card">
+            <span class="badge badge-amber">LWW-Element-Set</span>
+            <h3>Deterministic Tablet Sync</h3>
+            <p>Field tablets queue offline records using Hybrid Logical Clocks <code>(lamport, wall_ms, node_id)</code> and SHA-256 content hashes, converging cleanly on reconnect.</p>
+          </article>
+          <article class="card">
+            <span class="badge">IPM Matrix</span>
+            <h3>Non-Chemical First</h3>
+            <p>Precondition checks for Fall Armyworm, Coffee Berry Borer, Cassava Mosaic, Bean Anthracnose, and Banana Bacterial Wilt prioritize cultural &amp; scouting actions.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Explore every capability on its own page</h2>
+        <div class="grid-2">
+          <div class="card card-white">
+            <h3><a href="studio.html">Field Advisory &amp; SMS Studio &rarr;</a></h3>
+            <p>Test crop recommendations, confidence bounds, and live 160-character English, Luganda, and Swahili SMS previews interactively.</p>
+          </div>
+          <div class="card card-white">
+            <h3><a href="proof.html">3-Tablet CRDT Sync Proof &rarr;</a></h3>
+            <p>Inspect the deterministic 20-envelope simulation across Masaka, Mbale, and Gulu tablets with tombstone and HLC tie-breaks.</p>
+          </div>
+          <div class="card card-white">
+            <h3><a href="rules.html">Agro-Ecological &amp; IPM Matrix &rarr;</a></h3>
+            <p>Browse rainfall bands, temperature windows, and pest-risk preconditions across all 6 crops and 4 East African zones.</p>
+          </div>
+          <div class="card card-white">
+            <h3><a href="docs.html">CLI, FastAPI &amp; Sync Docs &rarr;</a></h3>
+            <p>Quickstart commands, HTTP workbench endpoints, and deployment guides in a clean sidebar-indexed reference.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>AgriSignal v1.1.0</strong> · MIT License · Codesphere Innovations (U) Limited</div>
+      <div class="footer-links">
+        <a href="docs.html">Docs</a>
+        <a href="llms.txt">llms.txt</a>
+        <a href="sitemap.xml">sitemap.xml</a>
+        <a href="https://github.com/codesphere-u/agrisignal">GitHub</a>
+      </div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -2,6 +2,12 @@
 
 All notable changes to **AgriSignal** are documented in this file.
 
+## [1.1.0] - 2026-11-14
+
+### Added
+- **Warm Ivory Editorial Multi-Page Website (`website/`)**: Harvest Forest (`#15803d`) & Terracotta Maize (`#d97706`) Handy-inspired showcase with dedicated pages (`index.html`, `studio.html`, `proof.html`, `rules.html`, `docs.html`), interactive Crop Advisory + LWW-Element-Set CRDT Sync Studio, 6-crop / 4-zone / IPM rule browser, and full GEO/SEO assets (`llms.txt`, `llms-full.txt`, `sitemap.xml`, `robots.txt`, `manifest.webmanifest`, `og-image.svg`).
+- **GitHub Pages Workflow & Documentation**: Added `.github/workflows/pages.yml`, [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md), [docs/ADVISORY_AND_SYNC.md](docs/ADVISORY_AND_SYNC.md), root `llms.txt` / `llms-full.txt`, and `tests/test_website_and_docs.py`.
+
 ## [1.0.0] - 2026-11-02
 
 ### Added

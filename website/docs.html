@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — AgriSignal v1.1.0</title>
+  <meta name="description" content="Complete CLI, FastAPI workbench, LWW-Element-Set sync protocol, and EN/LG/SW SMS documentation for AgriSignal v1.1.0.">
+  <link rel="canonical" href="https://codesphere-u.github.io/agrisignal/docs.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="AgriSignal"><span>AgriSignal</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Field Studio</a>
+        <a href="proof.html">Sync Proof</a>
+        <a href="rules.html">Agro &amp; IPM Rules</a>
+        <a class="active" href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/agrisignal/releases/tag/v1.1.0">v1.1.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container docs-layout">
+    <aside class="docs-sidebar" aria-label="Documentation sections">
+      <h4>AgriSignal Docs</h4>
+      <a class="active" href="#install">1. Installation</a>
+      <a href="#cli">2. CLI Commands</a>
+      <a href="#sync">3. CRDT Sync Protocol</a>
+      <a href="#sms">4. EN / LG / SW SMS</a>
+      <a href="#server">5. FastAPI Workbench</a>
+    </aside>
+
+    <article class="docs-article">
+      <span class="eyebrow">Reference · v1.1.0</span>
+      <h1 style="margin-top:0.85rem;">AgriSignal Documentation</h1>
+      <p class="lead">Everything needed to run offline crop advisories, IPM checks, and LWW-Element-Set sync hubs locally or in field deployments.</p>
+
+      <section id="install">
+        <h2>1. Installation</h2>
+        <pre class="code-block">git clone https://github.com/codesphere-u/agrisignal.git
+cd agrisignal
+uv sync --all-extras</pre>
+      </section>
+
+      <section id="cli">
+        <h2>2. CLI Commands</h2>
+        <pre class="code-block">agrisignal advise --crop maize --zone lake_victoria_crescent --lang lg
+agrisignal pest-risk --crop robusta_coffee --temp 26 --humidity 84 --rain 140
+agrisignal simulate-sync
+agrisignal serve --host 127.0.0.1 --port 8080</pre>
+      </section>
+
+      <section id="sync">
+        <h2>3. CRDT Sync Protocol</h2>
+        <p><code>CentralSyncHub</code> validates SHA-256 payload hashes, deduplicates retries idempotently, and orders conflicting plot mutations using <code>(lamport, wall_time_ms, node_id)</code> Hybrid Logical Clock tuples.</p>
+      </section>
+
+      <section id="sms">
+        <h2>4. EN / LG / SW Multilingual SMS</h2>
+        <p><code>agrisignal.i18n.translator</code> renders English (<code>en</code>), Luganda (<code>lg</code>), and Swahili (<code>sw</code>) summaries strictly capped at <code>&le;160</code> characters for rural GSM-7 handsets.</p>
+      </section>
+
+      <section id="server">
+        <h2>5. FastAPI Workbench</h2>
+        <p>Start the low-bandwidth HTTP API and field workbench via <code>agrisignal serve</code>, exposing advisory, pest-risk, sync simulation, and health endpoints.</p>
+      </section>
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>AgriSignal v1.1.0</strong> · Documentation</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="studio.html">Field Studio</a><a href="https://github.com/codesphere-u/agrisignal">GitHub</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

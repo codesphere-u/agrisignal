@@ -1,0 +1,15 @@
+# AgriSignal v1.1.0 — Complete Technical Reference
+
+AgriSignal is an offline-first agricultural decision support platform designed for rural extension officers and smallholder cooperatives across East Africa.
+
+## Core Capabilities
+1. **Explainable Crop & Planting Advisory Engine (`agrisignal/advisory/engine.py`)**: Evaluates `maize`, `robusta_coffee`, `beans`, `cassava`, `matooke_banana`, and `groundnuts` across `lake_victoria_crescent`, `western_highlands`, `northern_savannah`, and `eastern_plains` with explicit `point_confidence`, `confidence_interval`, `data_completeness_score`, and `missing_sensor_warnings`.
+2. **Pest & Disease IPM Matrix (`agrisignal/advisory/pest_risk.py`)**: Models preconditions and non-chemical IPM guidance for Fall Armyworm, Coffee Berry Borer & Coffee Wilt, Cassava Mosaic & Brown Streak, Bean Anthracnose, and Banana Bacterial Wilt.
+3. **Offline-First LWW-Element-Set CRDT Sync (`agrisignal/sync/engine.py`)**: Hybrid Logical Clocks (`(lamport, wall_time_ms, node_id)`), SHA-256 content hashes, idempotency replay protection, and deterministic tombstone conflict resolution.
+4. **Multilingual <=160-Char SMS (`agrisignal/i18n/translator.py`)**: English (`en`), Luganda (`lg`), and Swahili (`sw`).
+5. **CLI & FastAPI Workbench (`agrisignal/cli.py`, `agrisignal/server/app.py`)**: `advise`, `simulate-sync`, `pest-risk`, `serve`.
+
+## Links
+- Live Site: https://codesphere-u.github.io/agrisignal/
+- Getting Started: https://github.com/codesphere-u/agrisignal/blob/main/docs/GETTING_STARTED.md
+- Advisory & Sync Guide: https://github.com/codesphere-u/agrisignal/blob/main/docs/ADVISORY_AND_SYNC.md

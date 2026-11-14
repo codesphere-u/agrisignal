@@ -1,0 +1,16 @@
+{
+  "name": "AgriSignal — Offline-First Agricultural Decision Support",
+  "short_name": "AgriSignal",
+  "version": "1.1.0",
+  "start_url": "/agrisignal/",
+  "display": "standalone",
+  "background_color": "#fffdf2",
+  "theme_color": "#15803d",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

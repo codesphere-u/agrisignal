@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync Proof — AgriSignal v1.1.0</title>
+  <meta name="description" content="Verified 3-tablet LWW-Element-Set CRDT reconciliation proof with Hybrid Logical Clocks and SHA-256 integrity checks.">
+  <link rel="canonical" href="https://codesphere-u.github.io/agrisignal/proof.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="AgriSignal"><span>AgriSignal</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Field Studio</a>
+        <a class="active" href="proof.html">Sync Proof</a>
+        <a href="rules.html">Agro &amp; IPM Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/agrisignal/releases/tag/v1.1.0">v1.1.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow eyebrow-amber">Deterministic 3-Tablet CRDT Verification</span>
+    <h1>Offline-First LWW-Element-Set Proof</h1>
+    <p class="lead">Captured directly from <code>agrisignal simulate-sync</code> across rural tablets in Masaka, Mbale, and Gulu.</p>
+
+    <div class="grid-4" style="margin-bottom: 1.75rem;">
+      <div class="card card-white"><div class="stat-value">20</div><div class="stat-label">Total Envelopes Received</div></div>
+      <div class="card card-white"><div class="stat-value">19</div><div class="stat-label">Accepted Unique Envelopes</div></div>
+      <div class="card card-white"><div class="stat-value">4</div><div class="stat-label">LWW Conflicts Resolved</div></div>
+      <div class="card card-white"><div class="stat-value">0</div><div class="stat-label">SHA-256 Integrity Failures</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Plot ID</th><th>Winner</th><th>Loser</th><th>Resolution Rule</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>plot-shared-coop-01</code></td><td><code>tablet-mbale-02</code></td><td><code>tablet-masaka-01</code></td><td>Stale out-of-order UPSERT rejected by LWW-Element-Set</td></tr>
+          <tr><td><code>plot-shared-coop-02</code></td><td><code>tablet-masaka-01</code></td><td><code>tablet-gulu-03</code></td><td>Deterministic <code>(lamport, wall_ms, node_id)</code> tie-break</td></tr>
+          <tr><td><code>plot-shared-coop-03</code></td><td><code>tablet-masaka-01</code></td><td><code>tablet-gulu-03</code></td><td>Cross-set LWW resolution: DELETE tombstone overrode prior state</td></tr>
+          <tr><td><code>plot-lvc-01</code></td><td><code>tablet-masaka-01</code></td><td><code>tablet-masaka-01</code></td><td>LWW supersede on UPSERT with higher HLC tuple</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>AgriSignal v1.1.0</strong> · Sync Proof</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="rules.html">Agro &amp; IPM Rules</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field Studio — AgriSignal v1.1.0</title>
+  <meta name="description" content="Interactive AgriSignal crop advisory simulator, epistemic confidence calculator, and <=160-character EN/LG/SW SMS formatter.">
+  <link rel="canonical" href="https://codesphere-u.github.io/agrisignal/studio.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="AgriSignal"><span>AgriSignal</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a class="active" href="studio.html">Field Studio</a>
+        <a href="proof.html">Sync Proof</a>
+        <a href="rules.html">Agro &amp; IPM Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/agrisignal/releases/tag/v1.1.0">v1.1.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow">Interactive Advisory &amp; SMS Workbench</span>
+    <h1>Field Advisory Studio</h1>
+    <p class="lead">Simulate an extension officer query across crop profiles, East African agro-ecological zones, 14-day rainfall totals, and GSM-7 SMS languages.</p>
+
+    <div class="studio-grid">
+      <section class="card card-white">
+        <h2>Observation Input</h2>
+        <div class="field">
+          <label for="studio-crop">Crop Profile</label>
+          <select id="studio-crop">
+            <option value="maize">Maize</option>
+            <option value="robusta_coffee">Robusta Coffee</option>
+            <option value="beans">Beans</option>
+            <option value="cassava">Cassava</option>
+            <option value="matooke_banana">Matooke Banana</option>
+            <option value="groundnuts">Groundnuts</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="studio-zone">Agro-Ecological Zone</label>
+          <select id="studio-zone">
+            <option value="lake_victoria_crescent">Lake Victoria Crescent</option>
+            <option value="western_highlands">Western Highlands</option>
+            <option value="northern_savannah">Northern Savannah</option>
+            <option value="eastern_plains">Eastern Plains</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="studio-lang">SMS Language (&le;160 chars)</label>
+          <select id="studio-lang">
+            <option value="en">English (en)</option>
+            <option value="lg">Luganda (lg)</option>
+            <option value="sw">Swahili (sw)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="studio-rain">14-Day Rainfall (mm)</label>
+          <input id="studio-rain" type="number" min="0" max="400" value="95">
+        </div>
+        <button id="studio-run" class="btn btn-primary" type="button" style="width:100%;">Evaluate Advisory</button>
+      </section>
+
+      <section class="card">
+        <span class="badge">Explainable Output</span>
+        <h2 style="margin-top:0.6rem;">Confidence &amp; SMS Output</h2>
+        <pre id="studio-output" class="code-block">{}</pre>
+        <h3 style="margin-top:1.25rem;">Feature-Phone SMS Dispatch</h3>
+        <div id="studio-sms" class="sms-preview"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>AgriSignal v1.1.0</strong> · Field Studio</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="proof.html">Sync Proof</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

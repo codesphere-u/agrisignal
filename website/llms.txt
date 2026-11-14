@@ -1,0 +1,12 @@
+# AgriSignal (`v1.1.0`)
+
+> Offline-first smallholder agricultural decision support, explainable crop advisories, IPM pest-risk matrix, <=160-char EN/LG/SW SMS formatter, and LWW-Element-Set CRDT sync engine for East Africa.
+
+- Website: https://codesphere-u.github.io/agrisignal/
+- Field Studio: https://codesphere-u.github.io/agrisignal/studio.html
+- Sync Proof: https://codesphere-u.github.io/agrisignal/proof.html
+- Agro & IPM Rules: https://codesphere-u.github.io/agrisignal/rules.html
+- Documentation: https://codesphere-u.github.io/agrisignal/docs.html
+- Repository: https://github.com/codesphere-u/agrisignal
+- Author: Ivan Akandwanaho (Codesphere Innovations (U) Limited)
+- License: MIT

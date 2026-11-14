@@ -1,8 +1,15 @@
 # AgriSignal — Offline-First Smallholder Agricultural Decision Support Platform
 
 [![CI](https://github.com/codesphere-u/agrisignal/actions/workflows/ci.yml/badge.svg)](https://github.com/codesphere-u/agrisignal/actions/workflows/ci.yml)
+[![Pages](https://github.com/codesphere-u/agrisignal/actions/workflows/pages.yml/badge.svg)](https://codesphere-u.github.io/agrisignal/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+
+> **Live Website & Docs:** [codesphere-u.github.io/agrisignal](https://codesphere-u.github.io/agrisignal/) · **Field Studio:** [studio.html](https://codesphere-u.github.io/agrisignal/studio.html) · **Sync Proof:** [proof.html](https://codesphere-u.github.io/agrisignal/proof.html) · **IPM Rules:** [rules.html](https://codesphere-u.github.io/agrisignal/rules.html) · **Docs:** [docs.html](https://codesphere-u.github.io/agrisignal/docs.html)
+>
+> **Documentation:** [Getting Started](docs/GETTING_STARTED.md) · [Advisory & Sync Guide](docs/ADVISORY_AND_SYNC.md) · [Architecture](docs/architecture.md) · [LLM Context](llms.txt)
+
+AgriSignal (`v1.1.0`) is an offline-first agricultural decision support engine and CRDT sync platform built for rural extension officers and smallholder cooperatives across East Africa.
 
 **AgriSignal** is an open-source, offline-first agro-climatic decision support and field synchronization platform engineered for smallholder farmers, rural cooperatives, and agricultural extension officers across East Africa.
 

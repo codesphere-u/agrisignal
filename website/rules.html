@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agro &amp; IPM Rules — AgriSignal v1.1.0</title>
+  <meta name="description" content="Agro-ecological rainfall thresholds, temperature bands, and non-chemical IPM pest-risk rules for 6 East African crops.">
+  <link rel="canonical" href="https://codesphere-u.github.io/agrisignal/rules.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="AgriSignal"><span>AgriSignal</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Field Studio</a>
+        <a href="proof.html">Sync Proof</a>
+        <a class="active" href="rules.html">Agro &amp; IPM Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/agrisignal/releases/tag/v1.1.0">v1.1.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow">6 Crops · 4 Zones · Non-Chemical IPM</span>
+    <h1>Agro-Ecological &amp; IPM Rules</h1>
+    <p class="lead">Transparent rule thresholds evaluated deterministically by <code>agrisignal/advisory/engine.py</code> and <code>agrisignal/advisory/pest_risk.py</code>.</p>
+
+    <div class="table-wrap" style="margin-bottom: 2rem;">
+      <table>
+        <thead>
+          <tr><th>Crop</th><th>14-Day Optimal Rain</th><th>Primary Pest / Disease Watch</th><th>First-Line IPM Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>maize</code></td><td>75 &ndash; 150 mm</td><td>Fall Armyworm</td><td>Early whorl scouting, hand-crushing egg masses, push-pull intercropping</td></tr>
+          <tr><td><code>robusta_coffee</code></td><td>95 &ndash; 165 mm</td><td>Coffee Berry Borer &amp; Wilt</td><td>Strip-picking dry berries, Brocca traps, sanitation pruning</td></tr>
+          <tr><td><code>beans</code></td><td>60 &ndash; 110 mm</td><td>Bean Anthracnose</td><td>Certified clean seed, wider spacing for airflow, crop rotation</td></tr>
+          <tr><td><code>cassava</code></td><td>50 &ndash; 130 mm</td><td>Cassava Mosaic &amp; Brown Streak</td><td>Clean symptom-free cuttings, roguing infected stems early</td></tr>
+          <tr><td><code>matooke_banana</code></td><td>95 &ndash; 170 mm</td><td>Banana Bacterial Wilt</td><td>Disinfecting cutting tools, early male bud removal</td></tr>
+          <tr><td><code>groundnuts</code></td><td>55 &ndash; 115 mm</td><td>Rosette Vector Aphids</td><td>Early planting at onset of rains, dense canopy spacing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>4 East African Agro-Ecological Zones</h3>
+        <ul>
+          <li><code>lake_victoria_crescent</code> — bimodal high-humidity basin</li>
+          <li><code>western_highlands</code> — cooler elevation coffee &amp; banana belt</li>
+          <li><code>northern_savannah</code> — unimodal / transitional rainfall plains</li>
+          <li><code>eastern_plains</code> — mixed maize, beans, and groundnuts belt</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Epistemic Uncertainty Guardrails</h3>
+        <p>Missing soil pH, moisture, or temperature sensors reduce <code>data_completeness_score</code>, widen <code>confidence_interval</code>, and append explicit <code>missing_sensor_warnings</code>.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>AgriSignal v1.1.0</strong> · Agro &amp; IPM Rules</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="studio.html">Field Studio</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

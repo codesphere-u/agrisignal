@@ -7,8 +7,8 @@ authors:
     affiliation: "Codesphere Innovations (U) Limited"
 title: "AgriSignal"
 abstract: "Edge AI Agricultural Diagnostics and Offline-First Multilingual Advisory Engine"
-version: "1.0.0"
-date-released: 2026-11-10
+version: "1.1.0"
+date-released: 2026-11-14
 url: "https://github.com/codesphere-u/agrisignal"
 repository-code: "https://github.com/codesphere-u/agrisignal"
 license: "MIT"
