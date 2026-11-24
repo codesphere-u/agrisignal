@@ -73,8 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--lang",
         type=str,
         default="en",
-        choices=["en", "lg", "sw"],
-        help="Advisory language: English (en), Luganda (lg), or Swahili (sw)",
+        choices=["en", "lg", "sw", "nyn", "ach"],
+        help="Advisory language: English (en), Luganda (lg), Swahili (sw), Runyankole (nyn), or Acholi (ach)",
     )
     adv.add_argument("--json", action="store_true", help="Output raw JSON")
 

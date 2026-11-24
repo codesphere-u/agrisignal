@@ -378,7 +378,7 @@ def test_simulate_rural_sync_20_records_3_devices() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("lang", ["en", "lg", "sw"])
+@pytest.mark.parametrize("lang", ["en", "lg", "sw", "nyn", "ach"])
 @pytest.mark.parametrize("action_code", list(ACTION_I18N.keys()))
 def test_sms_160_character_bound_across_all_languages_and_actions(
     lang: str, action_code: str
@@ -393,18 +393,44 @@ def test_sms_160_character_bound_across_all_languages_and_actions(
         confidence_interval=(0.68, 0.90),
     )
     assert len(sms) <= 160
+    assert sms.isascii()
     assert "AGRISIGNAL" in sms
     assert "Conf:68-90%" in sms
 
 
-def test_localized_summaries_distinct_in_en_lg_sw() -> None:
+def test_localized_summaries_distinct_in_all_supported_languages() -> None:
     en_txt = translate_advisory_summary("en", "maize", "Lake Victoria Crescent", "planting", "OPTIMAL", "PROCEED_STANDARD", 85.0, 0.85)
     lg_txt = translate_advisory_summary("lg", "maize", "Lake Victoria Crescent", "planting", "OPTIMAL", "PROCEED_STANDARD", 85.0, 0.85)
     sw_txt = translate_advisory_summary("sw", "maize", "Lake Victoria Crescent", "planting", "OPTIMAL", "PROCEED_STANDARD", 85.0, 0.85)
+    nyn_txt = translate_advisory_summary("nyn", "maize", "Western Highlands", "planting", "OPTIMAL", "PROCEED_STANDARD", 85.0, 0.85)
+    ach_txt = translate_advisory_summary("ach", "maize", "Northern Savannah", "planting", "OPTIMAL", "PROCEED_STANDARD", 85.0, 0.85)
     assert "Kasooli" in lg_txt
     assert "Mahindi" in sw_txt
     assert "Maize" in en_txt
-    assert set(SUPPORTED_LANGUAGES.keys()) == {"en", "lg", "sw"}
+    assert "Ebicoori" in nyn_txt
+    assert "Anyogi" in ach_txt
+    assert set(SUPPORTED_LANGUAGES.keys()) == {"en", "lg", "sw", "nyn", "ach"}
+
+
+@pytest.mark.parametrize("lang,expected_crop", [("nyn", "Ebicoori"), ("ach", "Anyogi")])
+def test_runyankole_and_acholi_end_to_end_api_and_sms_bounds(lang: str, expected_crop: str) -> None:
+    client = TestClient(app)
+    res = client.post(
+        "/api/advise",
+        json={
+            "crop": "maize",
+            "zone": "northern_savannah" if lang == "ach" else "western_highlands",
+            "growth_stage": "planting",
+            "rain_14d_mm": 18.0,
+            "soil_ph": 6.0,
+            "lang": lang,
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert expected_crop in body["localized_summary"]
+    assert len(body["sms_160"]) <= 160
+    assert body["sms_160"].isascii()
 
 
 # ---------------------------------------------------------------------------

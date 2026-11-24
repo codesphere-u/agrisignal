@@ -482,6 +482,8 @@ WORKBENCH_HTML = """<!DOCTYPE html>
         <option value="en">English (en)</option>
         <option value="lg">Oluganda / Luganda (lg)</option>
         <option value="sw">Kiswahili / Swahili (sw)</option>
+        <option value="nyn">Runyankole (nyn)</option>
+        <option value="ach">Leb Acoli / Acholi (ach)</option>
       </select>
       <button type="button" onclick="runAdvisory()">Generate Explainable Advisory</button>
       <div id="sms-preview" class="sms-box">SMS 160-Char Preview will appear here...</div>
