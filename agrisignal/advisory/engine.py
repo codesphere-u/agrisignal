@@ -158,8 +158,9 @@ class AdvisoryInput(BaseModel):
         le=10.0,
         description="14-day temperature anomaly relative to zonal seasonal mean (deg C)",
     )
-    lang: Literal["en", "lg", "sw"] = Field(
-        default="en", description="Language code: English (en), Luganda (lg), or Swahili (sw)"
+    lang: Literal["en", "lg", "sw", "nyn", "ach"] = Field(
+        default="en",
+        description="Language code: English (en), Luganda (lg), Swahili (sw), Runyankole (nyn), or Acholi (ach)",
     )
 
 
